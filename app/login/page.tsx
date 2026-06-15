@@ -24,7 +24,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/dashboard")
+      router.replace("/")
       return
     }
 

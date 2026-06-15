@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
 import "./globals.css";
 import { SiteFooter } from "@/components/site-footer";
+import SessionProvider from "@/components/session-provider";
 
 const cairo = Cairo({
   variable: "--font-cairo",
@@ -49,8 +50,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans flex flex-col">
-        <div className="flex-1">{children}</div>
-        <SiteFooter />
+        <SessionProvider>
+          <div className="flex-1">{children}</div>
+          <SiteFooter />
+        </SessionProvider>
       </body>
     </html>
   );

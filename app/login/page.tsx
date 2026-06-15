@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { loginSchema } from "@/app/lib/validations"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 
 const errorMessages: Record<string, string> = {
   CredentialsSignin: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
@@ -18,15 +19,22 @@ const errorMessages: Record<string, string> = {
 export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const { data: session, status } = useSession()
 
   useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/dashboard")
+      return
+    }
+
     const params = new URLSearchParams(window.location.search)
     const err = params.get("error")
     if (err && errorMessages[err]) setError(errorMessages[err])
     else if (err) setError("حدث خطأ أثناء تسجيل الدخول")
 
     if (params.get("registered") === "true") setError("تم إنشاء الحساب بنجاح، سجل دخول الآن")
-  }, [])
+  }, [status, router])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()

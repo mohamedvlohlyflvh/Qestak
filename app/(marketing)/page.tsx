@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LandingAnimations } from "@/components/landing-animations"
-import { auth } from "@/auth"
+import { AuthButtons } from "@/components/auth-buttons"
 
 const features = [
   { icon: "🤖", title: "تحصيل ذكي", desc: "خوارزميات لتحديد أولويات التحصيل بناءً على سلوك الدفع" },
@@ -12,10 +12,7 @@ const features = [
   { icon: "🔍", title: "بحث سريع", desc: "ابحث عن أي عميل أو عقد بسرعة — بالاسم أو الرقم" },
 ]
 
-export default async function Home() {
-  const session = await auth()
-  const isLoggedIn = !!session?.user
-
+export default function Home() {
   return (
     <LandingAnimations>
     <div dir="rtl">
@@ -24,14 +21,7 @@ export default async function Home() {
           <span className="text-gradient-gold">قسطك</span>
         </span>
         <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            <Link href="/dashboard" className="btn-gold text-sm !py-2 !px-5">الانتقال إلى لوحة التحكم</Link>
-          ) : (
-            <>
-              <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">تسجيل الدخول</Link>
-              <Link href="/register" className="btn-gold text-sm !py-2 !px-5">ابدأ مجاناً</Link>
-            </>
-          )}
+          <AuthButtons header />
           <ThemeToggle iconOnly />
         </div>
       </header>
@@ -51,14 +41,7 @@ export default async function Home() {
           لتحليل المخاطر والتواصل التلقائي مع العملاء.
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
-          {isLoggedIn ? (
-            <Link href="/dashboard" className="btn-gold text-sm sm:text-base !py-3 sm:!py-4 !px-6 sm:!px-10">الانتقال إلى لوحة التحكم</Link>
-          ) : (
-            <>
-              <Link href="/register" className="btn-gold text-sm sm:text-base !py-3 sm:!py-4 !px-6 sm:!px-10">ابدأ مجاناً</Link>
-              <Link href="/login" className="btn-glass text-sm sm:text-base !py-3 sm:!py-4 !px-6 sm:!px-10">تسجيل الدخول</Link>
-            </>
-          )}
+          <AuthButtons hero />
         </div>
       </section>
 

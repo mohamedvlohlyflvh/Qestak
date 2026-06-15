@@ -2,21 +2,18 @@
 
 import bcrypt from "bcryptjs"
 import { prisma } from "@/app/lib/prisma"
+import { registerSchema } from "@/app/lib/validations"
 
 export async function registerUser(formData: FormData) {
-  const name = formData.get("name") as string
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
-  const storeName = formData.get("storeName") as string
-  const phone = formData.get("phone") as string
+  const raw = Object.fromEntries(formData)
 
-  if (!name || !email || !password) {
-    return { error: "جميع الحقول المطلوبة غير مكتملة" }
+  const parsed = registerSchema.safeParse(raw)
+  if (!parsed.success) {
+    const firstError = parsed.error.errors[0]
+    return { error: firstError.message }
   }
 
-  if (password.length < 6) {
-    return { error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }
-  }
+  const { name, email, password, storeName, phone } = parsed.data
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {

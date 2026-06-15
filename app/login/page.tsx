@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { loginSchema } from "@/app/lib/validations"
 
 export default function LoginPage() {
   const [error, setError] = useState("")
@@ -14,6 +15,15 @@ export default function LoginPage() {
     setError("")
 
     const form = new FormData(e.currentTarget)
+    const email = form.get("email") as string
+    const password = form.get("password") as string
+
+    const validation = loginSchema.safeParse({ email, password })
+    if (!validation.success) {
+      setError(validation.error.errors[0].message)
+      setLoading(false)
+      return
+    }
 
     try {
       const csrfRes = await fetch("/api/auth/csrf")
@@ -22,7 +32,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/callback/credentials", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ csrfToken, email: form.get("email") as string, password: form.get("password") as string }),
+        body: new URLSearchParams({ csrfToken, email, password }),
       })
 
       if (res.redirected || res.ok) {

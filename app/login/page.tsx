@@ -18,6 +18,7 @@ const errorMessages: Record<string, string> = {
 export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [csrfToken, setCsrfToken] = useState("")
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
@@ -27,6 +28,8 @@ export default function LoginPage() {
     else if (err) setError("حدث خطأ أثناء تسجيل الدخول")
 
     if (params.get("registered") === "true") setError("تم إنشاء الحساب بنجاح، سجل دخول الآن")
+
+    fetch("/api/auth/csrf").then(r => r.json()).then(d => setCsrfToken(d.csrfToken)).catch(() => {})
   }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -56,13 +59,10 @@ export default function LoginPage() {
   }
 
   function handleGoogle() {
-    const form = formRef.current
-    if (!form) return
-    const csrf = form.querySelector<HTMLInputElement>("input[name=csrfToken]")
     const input = document.createElement("input")
     input.type = "hidden"
     input.name = "csrfToken"
-    input.value = csrf?.value || ""
+    input.value = csrfToken
     const googleForm = document.createElement("form")
     googleForm.method = "POST"
     googleForm.action = "/api/auth/signin/google"
@@ -96,7 +96,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <input type="hidden" name="csrfToken" defaultValue="__placeholder__" />
+
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">

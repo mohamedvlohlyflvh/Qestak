@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../prisma/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlanStatus {
+  FREE
+  BASIC
+  PRO
+  UNLIMITED
+}
+
+enum ContractStatus {
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+}
+
+enum InstallmentStatus {
+  UPCOMING
+  PAID
+  OVERDUE
+  PARTIAL
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NotificationChannel {
+  IN_APP
+  WHATSAPP
+}
+
+model User {
+  id                String           @id @default(cuid())
+  name              String?
+  email             String           @unique
+  emailVerified     DateTime?
+  image             String?
+  password          String?
+  storeName         String?
+  phone             String?
+  plan              PlanStatus       @default(FREE)
+  stripeCustomerId  String?          @unique
+  stripeSubscriptionId String?
+  subscriptionEnds  DateTime?
+
+  themePreference   String           @default("light")
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  accounts          Account[]
+  sessions          Session[]
+  customers         Customer[]
+  contracts         Contract[]
+  payments          Payment[]
+  notifications     Notification[]
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Customer {
+  id                 String               @id @default(cuid())
+  name               String
+  nationalId         String               @unique
+  phone              String
+  address            String
+  jobTitle           String?
+  creditScore        Int                  @default(100)
+
+  notificationChannel NotificationChannel @default(IN_APP)
+  merchantId         String
+  merchant           User                 @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  contracts          Contract[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([merchantId])
+  @@index([nationalId])
+}
+
+model Contract {
+  id              String           @id @default(cuid())
+  contractNumber  String           @unique
+  totalAmount     Float
+  downPayment     Float
+  remainingAmount Float
+  interestRate    Float?
+  installmentInterval Int?       @default(30)
+  status          ContractStatus   @default(ACTIVE)
+  merchantId      String
+  merchant        User             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customerId      String
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  installments    Installment[]
+  guarantor       Guarantor?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([merchantId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model Guarantor {
+  id         String   @id @default(cuid())
+  name       String
+  nationalId String
+  phone      String
+  address    String?
+  contractId String   @unique
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([nationalId])
+}
+
+model Installment {
+  id          String            @id @default(cuid())
+  amount      Float
+  amountPaid  Float             @default(0.0)
+  dueDate     DateTime
+  paidDate    DateTime?
+  status      InstallmentStatus @default(UPCOMING)
+  notes       String?
+  contractId  String
+  contract    Contract          @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([dueDate, status])
+}
+
+model Notification {
+  id          String               @id @default(cuid())
+  title       String
+  message     String
+  isRead      Boolean              @default(false)
+  priority    NotificationPriority @default(LOW)
+  merchantId  String
+  merchant    User                 @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime             @default(now())
+
+  @@index([merchantId, isRead])
+}
+
+model Payment {
+  id                String    @id @default(cuid())
+  amount            Float
+  status            String
+  stripeReferenceId String    @unique
+  merchantId        String
+  merchant          User      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now())
+}
+
+model WebhookEvent {
+  id        String   @id
+  type      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

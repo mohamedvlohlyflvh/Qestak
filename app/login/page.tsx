@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { loginSchema } from "@/app/lib/validations"
@@ -18,8 +18,6 @@ const errorMessages: Record<string, string> = {
 export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [csrfToken, setCsrfToken] = useState("")
-  const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -28,8 +26,6 @@ export default function LoginPage() {
     else if (err) setError("حدث خطأ أثناء تسجيل الدخول")
 
     if (params.get("registered") === "true") setError("تم إنشاء الحساب بنجاح، سجل دخول الآن")
-
-    fetch("/api/auth/csrf").then(r => r.json()).then(d => setCsrfToken(d.csrfToken)).catch(() => {})
   }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -59,16 +55,7 @@ export default function LoginPage() {
   }
 
   function handleGoogle() {
-    const input = document.createElement("input")
-    input.type = "hidden"
-    input.name = "csrfToken"
-    input.value = csrfToken
-    const googleForm = document.createElement("form")
-    googleForm.method = "POST"
-    googleForm.action = "/api/auth/signin/google"
-    googleForm.appendChild(input)
-    document.body.appendChild(googleForm)
-    googleForm.submit()
+    signIn("google")
   }
 
   return (
@@ -83,7 +70,7 @@ export default function LoginPage() {
           <p className="text-sm text-muted-foreground mt-1">منصة إدارة التقسيط الذكية</p>
         </div>
 
-        <form ref={formRef} onSubmit={handleSubmit} className="glass-card p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="glass-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-center text-foreground">تسجيل الدخول</h2>
 
           {error && (

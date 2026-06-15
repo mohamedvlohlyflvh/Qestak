@@ -5,20 +5,29 @@ import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { loginSchema } from "@/app/lib/validations"
 
+const errorMessages: Record<string, string> = {
+  CredentialsSignin: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+  OAuthAccountNotLinked: "هذا البريد مسجل بطريقة مختلفة",
+  MissingCSRF: "انتهت الجلسة، حاول تحديث الصفحة",
+  Configuration: "خطأ في الإعدادات، حاول مرة أخرى",
+}
+
 export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [csrfToken, setCsrfToken] = useState("")
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const err = params.get("error")
+    if (err && errorMessages[err]) setError(errorMessages[err])
+    else if (err) setError("حدث خطأ أثناء تسجيل الدخول")
+
     fetch("/api/auth/csrf").then(r => r.json()).then(d => setCsrfToken(d.csrfToken)).catch(() => {})
   }, [])
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setLoading(true)
-    setError("")
-
     const form = new FormData(e.currentTarget)
     const email = form.get("email") as string
     const password = form.get("password") as string
@@ -26,27 +35,11 @@ export default function LoginPage() {
     const validation = loginSchema.safeParse({ email, password })
     if (!validation.success) {
       setError(validation.error.issues[0].message)
-      setLoading(false)
       return
     }
 
-    try {
-      const res = await fetch("/api/auth/callback/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ csrfToken, email, password }),
-      })
-
-      if (res.redirected || res.ok) {
-        window.location.href = "/dashboard"
-      } else {
-        setError("بيانات الدخول غير صحيحة")
-      }
-    } catch {
-      setError("حدث خطأ أثناء تسجيل الدخول")
-    } finally {
-      setLoading(false)
-    }
+    setLoading(true)
+    e.currentTarget.submit()
   }
 
   return (
@@ -61,7 +54,12 @@ export default function LoginPage() {
           <p className="text-sm text-muted-foreground mt-1">منصة إدارة التقسيط الذكية</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="glass-card p-6 space-y-4">
+        <form
+          action="/api/auth/callback/credentials"
+          method="POST"
+          onSubmit={handleSubmit}
+          className="glass-card p-6 space-y-4"
+        >
           <h2 className="text-lg font-semibold text-center text-foreground">تسجيل الدخول</h2>
 
           {error && (
@@ -69,6 +67,8 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+
+          <input type="hidden" name="csrfToken" value={csrfToken} />
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">

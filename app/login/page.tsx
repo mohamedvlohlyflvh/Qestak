@@ -18,7 +18,6 @@ const errorMessages: Record<string, string> = {
 export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [csrfToken, setCsrfToken] = useState("")
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -27,8 +26,6 @@ export default function LoginPage() {
     else if (err) setError("حدث خطأ أثناء تسجيل الدخول")
 
     if (params.get("registered") === "true") setError("تم إنشاء الحساب بنجاح، سجل دخول الآن")
-
-    fetch("/api/auth/csrf").then(r => r.json()).then(d => setCsrfToken(d.csrfToken)).catch(() => {})
   }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -57,18 +54,12 @@ export default function LoginPage() {
     }
   }
 
-  function handleGoogle() {
-    if (!csrfToken) return
-    const form = document.createElement("form")
-    form.method = "POST"
-    form.action = "/api/auth/signin/google"
-    const csrf = document.createElement("input")
-    csrf.type = "hidden"
-    csrf.name = "csrfToken"
-    csrf.value = csrfToken
-    form.appendChild(csrf)
-    document.body.appendChild(form)
-    form.submit()
+  async function handleGoogle() {
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" })
+    } catch {
+      setError("حدث خطأ أثناء تسجيل الدخول بحساب Google")
+    }
   }
 
   return (

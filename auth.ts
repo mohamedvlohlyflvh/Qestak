@@ -17,6 +17,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: process.env.AUTH_GOOGLE_ID ?? "",
       clientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
       allowDangerousEmailAccountLinking: true,
+      token: "https://oauth2.googleapis.com/token",
+      userinfo: "https://openidconnect.googleapis.com/v1/userinfo",
+      issuer: "https://accounts.google.com",
     }),
     Credentials({
       name: "credentials",

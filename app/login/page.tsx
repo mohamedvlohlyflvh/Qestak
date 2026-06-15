@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { loginSchema } from "@/app/lib/validations"
@@ -8,6 +8,11 @@ import { loginSchema } from "@/app/lib/validations"
 export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [csrfToken, setCsrfToken] = useState("")
+
+  useEffect(() => {
+    fetch("/api/auth/csrf").then(r => r.json()).then(d => setCsrfToken(d.csrfToken)).catch(() => {})
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -26,9 +31,6 @@ export default function LoginPage() {
     }
 
     try {
-      const csrfRes = await fetch("/api/auth/csrf")
-      const { csrfToken } = await csrfRes.json()
-
       const res = await fetch("/api/auth/callback/credentials", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -110,6 +112,7 @@ export default function LoginPage() {
           </div>
 
           <form action="/api/auth/signin/google" method="POST">
+            <input type="hidden" name="csrfToken" value={csrfToken} />
             <button
               type="submit"
               className="flex items-center justify-center gap-2 w-full py-2.5 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors cursor-pointer"

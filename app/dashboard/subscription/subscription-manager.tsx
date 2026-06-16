@@ -14,14 +14,9 @@ export function SubscriptionManager({ currentPlan }: { currentPlan: string; hasS
             <span className="text-xl">📱</span>
             <span className="text-sm font-semibold text-foreground">فودافون كاش</span>
           </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">للتواصل أولاً:</p>
-            <p className="text-lg font-bold font-mono text-primary" dir="ltr">01206363468</p>
-            <p className="text-xs text-muted-foreground mt-2">للتحويل:</p>
-            <p className="text-lg font-bold font-mono text-primary" dir="ltr">01093195795</p>
-          </div>
+          <p className="text-lg font-bold font-mono text-primary" dir="ltr">01093195795</p>
           <p className="text-xs text-muted-foreground">
-            تواصل على رقم التواصل <strong>أولاً</strong>، ثم قم بالتحويل على رقم فودافون كاش بعد التنسيق.
+            تواصل على الرقم <strong>أولاً</strong>، ثم قم بالتحويل على نفس الرقم فودافون كاش بعد التنسيق.
           </p>
         </div>
       </div>

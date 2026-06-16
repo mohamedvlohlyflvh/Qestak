@@ -52,9 +52,6 @@ export default function PricingPage() {
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-2">الدفع الإلكتروني قريباً</p>
                   <p className="text-sm font-semibold text-foreground">📱 فودافون كاش</p>
-                  <p className="text-xs text-muted-foreground">للتواصل أولاً:</p>
-                  <p className="text-base font-bold font-mono text-primary" dir="ltr">01206363468</p>
-                  <p className="text-xs text-muted-foreground mt-1">للتحويل (فودافون كاش):</p>
                   <p className="text-base font-bold font-mono text-primary" dir="ltr">01093195795</p>
                 </div>
               )}
@@ -64,7 +61,7 @@ export default function PricingPage() {
 
         <div className="mt-8 glass-card !p-5 max-w-md mx-auto">
           <p className="text-sm text-muted-foreground">
-            للاشتراك، تواصل على رقم التواصل <strong>أولاً</strong>، ثم قم بالتحويل على فودافون كاش بعد التنسيق.
+            للاشتراك، تواصل على الرقم <strong>أولاً</strong>، ثم قم بالتحويل على نفس الرقم فودافون كاش بعد التنسيق.
           </p>
         </div>
       </section>

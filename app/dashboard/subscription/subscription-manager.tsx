@@ -14,11 +14,12 @@ export function SubscriptionManager({ currentPlan }: { currentPlan: string; hasS
             <span className="text-xl">📱</span>
             <span className="text-sm font-semibold text-foreground">فودافون كاش</span>
           </div>
-          <p className="text-2xl font-bold font-mono text-primary" dir="ltr">
-            01093195795
-          </p>
+          <div className="space-y-1" dir="ltr">
+            <p className="text-lg font-bold font-mono text-primary">01093195795</p>
+            <p className="text-lg font-bold font-mono text-primary">01206363468</p>
+          </div>
           <p className="text-xs text-muted-foreground">
-            بعد التحويل، تواصل معنا عبر <strong>الواتساب</strong> على نفس الرقم مع إرسال إثبات الدفع لتفعيل الباقة.
+            تواصل على أحد الرقمين <strong>أولاً</strong>، ثم قم بالتحويل بعد التنسيق.
           </p>
         </div>
       </div>

@@ -3,7 +3,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/app/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { PLANS } from "@/app/lib/stripe"
+import { PLANS, FREE_CONTRACT_LIMIT } from "@/app/lib/stripe"
 
 export async function getContracts() {
   const session = await auth()
@@ -39,40 +39,62 @@ export async function createContract(formData: FormData) {
   const merchant = await prisma.user.findUnique({ where: { id: merchantId } })
   if (!merchant) return { error: "Merchant not found" }
 
-  const contractCount = await prisma.contract.count({
-    where: { merchantId, createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
-  })
-
   const plan = PLANS[merchant.plan as keyof typeof PLANS] || PLANS.FREE
-  const limit = plan.contractsPerWeek
-  if (typeof limit === "number" && contractCount >= limit) {
-    await prisma.notification.create({
-      data: {
-        title: "تم بلوغ الحد الأقصى",
-        message: `لقد تجاوزت الحد الأسبوعي لعقود خطتك (${limit} عقد). قم بترقية خطتك للمتابعة.`,
-        priority: "HIGH",
-        merchantId,
-      },
-    })
-    revalidatePath("/dashboard/notifications")
-    return { error: `لقد تجاوزت الحد الأسبوعي لعقود خطتك (${limit} عقد). قم بترقية خطتك للمتابعة.` }
-  }
 
-  const usagePercent = typeof limit === "number" ? Math.round((contractCount / limit) * 100) : 0
-  const warning = typeof limit === "number" && usagePercent >= 90 && usagePercent < 100
-    ? `لقد استهلكت ${usagePercent}% من حدك الأسبوعي (${contractCount}/${limit}). قم بترقية خطتك لزيادة الحد.`
-    : undefined
-
-  if (warning) {
-    await prisma.notification.create({
-      data: {
-        title: "اقتراب من الحد الأقصى",
-        message: warning,
-        priority: "MEDIUM",
-        merchantId,
-      },
+  if (plan.id === "FREE") {
+    const totalContracts = await prisma.contract.count({ where: { merchantId } })
+    if (totalContracts >= FREE_CONTRACT_LIMIT) {
+      await prisma.notification.create({
+        data: {
+          title: "تم بلوغ الحد الأقصى",
+          message: `لقد استنفدت الـ ${FREE_CONTRACT_LIMIT} عقود المجانية. اشترك في إحدى خططنا للمتابعة.`,
+          priority: "HIGH",
+          merchantId,
+        },
+      })
+      revalidatePath("/dashboard/notifications")
+      return { error: `لقد استنفدت الـ ${FREE_CONTRACT_LIMIT} عقود المجانية. اشترك في إحدى خططنا للمتابعة.` }
+    }
+    if (totalContracts === FREE_CONTRACT_LIMIT - 1) {
+      await prisma.notification.create({
+        data: {
+          title: "اقتراب من الحد الأقصى",
+          message: `لديك عقد مجاني واحد متبقي. قم بالاشتراك في إحدى خططنا للمتابعة بعد ذلك.`,
+          priority: "MEDIUM",
+          merchantId,
+        },
+      })
+      revalidatePath("/dashboard/notifications")
+    }
+  } else {
+    const weeklyCount = await prisma.contract.count({
+      where: { merchantId, createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
     })
-    revalidatePath("/dashboard/notifications")
+    const limit = plan.contractsPerWeek
+    if (typeof limit === "number" && weeklyCount >= limit) {
+      await prisma.notification.create({
+        data: {
+          title: "تم بلوغ الحد الأقصى",
+          message: `لقد تجاوزت الحد الأسبوعي لعقود خطتك (${limit} عقد/أسبوع).`,
+          priority: "HIGH",
+          merchantId,
+        },
+      })
+      revalidatePath("/dashboard/notifications")
+      return { error: `لقد تجاوزت الحد الأسبوعي لعقود خطتك (${limit} عقد/أسبوع).` }
+    }
+    const usagePercent = Math.round((weeklyCount / limit) * 100)
+    if (usagePercent >= 90 && usagePercent < 100) {
+      await prisma.notification.create({
+        data: {
+          title: "اقتراب من الحد الأقصى",
+          message: `لقد استهلكت ${usagePercent}% من حدك الأسبوعي (${weeklyCount}/${limit}).`,
+          priority: "MEDIUM",
+          merchantId,
+        },
+      })
+      revalidatePath("/dashboard/notifications")
+    }
   }
 
   const customerId = formData.get("customerId") as string

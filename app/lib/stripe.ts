@@ -12,11 +12,13 @@ export function getStripe(): Stripe {
 }
 
 export const PLANS = {
-  FREE: { id: "FREE", name: "مجاني", price: 0, contractsPerWeek: 3, priceIds: { month: null, year: null } },
+  FREE: { id: "FREE", name: "مجاني", price: 0, contractsPerWeek: 0, priceIds: { month: null, year: null } },
   BASIC: { id: "BASIC", name: "أساسي", price: 199, contractsPerWeek: 30, priceIds: { month: process.env.STRIPE_BASIC_MONTH_PRICE_ID!, year: process.env.STRIPE_BASIC_YEAR_PRICE_ID! } },
   PRO: { id: "PRO", name: "احترافي", price: 399, contractsPerWeek: 100, priceIds: { month: process.env.STRIPE_PRO_MONTH_PRICE_ID!, year: process.env.STRIPE_PRO_YEAR_PRICE_ID! } },
   UNLIMITED: { id: "UNLIMITED", name: "غير محدود", price: 499, contractsPerWeek: Infinity, priceIds: { month: process.env.STRIPE_UNLIMITED_MONTH_PRICE_ID!, year: process.env.STRIPE_UNLIMITED_YEAR_PRICE_ID! } },
 } as const
+
+export const FREE_CONTRACT_LIMIT = 5
 
 export type PlanId = keyof typeof PLANS
 

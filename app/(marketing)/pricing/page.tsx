@@ -11,7 +11,7 @@ const plans = [
     monthly: "مجاناً",
     yearly: "مجاناً",
     period: "دائماً",
-    quota: 3,
+    quota: 5,
     features: [],
     cta: "ابدأ مجاناً",
     href: "/register",
@@ -118,7 +118,7 @@ export default function PricingPage() {
                   {price !== "مجاناً" && <span className="text-sm text-muted-foreground mr-1">/{period}</span>}
                 </div>
                 <p className="text-xs text-muted-foreground mb-8">
-                  {plan.quota === Infinity ? "عقود غير محدودة" : `حد أقصى ${plan.quota} عقد/أسبوع`}
+                  {plan.id === "FREE" ? `أول ${plan.quota} عقود مجاناً` : plan.quota === Infinity ? "عقود غير محدودة" : `حد أقصى ${plan.quota} عقد/أسبوع`}
                 </p>
 
                 <div className="flex-1" />

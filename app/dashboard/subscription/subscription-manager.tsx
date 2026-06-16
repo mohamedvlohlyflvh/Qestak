@@ -11,7 +11,7 @@ const plans = [
     name: "مجاني",
     monthly: "مجاناً",
     yearly: "مجاناً",
-    quota: 3,
+    quota: 5,
     popular: false,
     features: [],
   },
@@ -134,7 +134,7 @@ function SubscriptionPlans({ currentPlan, hasSubscription }: { currentPlan: stri
               <h3 className="text-lg font-bold text-foreground mt-1">{plan.name}</h3>
               <p className="text-sm text-muted-foreground mt-3">{price}</p>
               <p className="text-xs text-muted-foreground mt-1 mb-8">
-                {plan.quota ? `حد أقصى ${plan.quota} عقد/أسبوع` : "عقود غير محدودة"}
+                {plan.id === "FREE" ? `أول ${plan.quota} عقود مجاناً` : plan.quota ? `حد أقصى ${plan.quota} عقد/أسبوع` : "عقود غير محدودة"}
               </p>
 
               <div className="flex-1" />
@@ -157,7 +157,7 @@ function SubscriptionPlans({ currentPlan, hasSubscription }: { currentPlan: stri
               )}
               {!isCurrent && plan.id === "FREE" && (
                 <button disabled className="w-full py-2.5 rounded-lg text-sm font-medium bg-muted text-muted-foreground cursor-not-allowed">
-                  مجاني دائماً
+                  5 عقود مجانية
                 </button>
               )}
             </div>

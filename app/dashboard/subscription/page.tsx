@@ -27,7 +27,7 @@ export default async function SubscriptionPage() {
   const plan = PLANS[user.plan]
 
   return (
-    <div className="px-4 sm:px-6 max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-foreground">الاشتراك</h1>
         <p className="text-sm text-muted-foreground mt-1">إدارة خطتك وفواتيرك</p>

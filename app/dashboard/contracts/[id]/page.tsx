@@ -26,7 +26,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   const overdueCount = contract.installments.filter((i) => i.status === "OVERDUE").length
 
   return (
-    <div className="px-4 sm:px-6" dir="rtl">
+    <div dir="rtl">
       <div className="mb-6">
         <Link href="/dashboard/contracts" className="text-sm text-primary hover:underline mb-2 inline-block">
           ← العودة إلى العقود

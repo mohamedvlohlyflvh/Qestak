@@ -54,11 +54,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id
+      if (user) {
+        token.id = user.id!
+        const dbUser = await prisma.user.findUnique({ where: { id: user.id! }, select: { isAdmin: true, merchantId: true } })
+        token.isAdmin = dbUser?.isAdmin ?? false
+        token.merchantId = dbUser?.merchantId ?? null
+      }
       return token
     },
     async session({ session, token }) {
-      if (session.user) session.user.id = token.id as string
+      if (session.user) {
+        session.user.id = token.id as string
+        session.user.isAdmin = (token.isAdmin as boolean) ?? false
+        session.user.merchantId = (token.merchantId as string | null) ?? null
+      }
       return session
     },
   },

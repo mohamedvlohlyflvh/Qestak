@@ -32,7 +32,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   })
 
   return (
-    <div className="px-4 sm:px-6" dir="rtl">
+    <div dir="rtl">
       <div className="mb-6">
         <Link href="/dashboard/customers" className="text-sm text-primary hover:underline mb-2 inline-block">
           ← العودة إلى العملاء

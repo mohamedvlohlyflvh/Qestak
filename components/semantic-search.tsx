@@ -69,7 +69,7 @@ export function SemanticSearch() {
   }
 
   return (
-    <div className="relative w-full max-w-md" ref={dropdownRef}>
+    <div className="relative w-full max-w-full sm:max-w-md" ref={dropdownRef}>
       <div className="relative">
         <input
           ref={inputRef}
@@ -86,7 +86,7 @@ export function SemanticSearch() {
       </div>
 
       {isOpen && (
-        <div className="absolute top-full mt-1 left-0 right-0 glass-card !rounded-xl z-50 max-h-80 overflow-y-auto">
+        <div className="!absolute top-full mt-1 left-0 right-0 glass-card !rounded-xl z-[60] max-h-80 overflow-y-auto !bg-background/95">
           {isSearching ? (
             <div className="p-4 text-center text-sm text-muted-foreground">جاري البحث...</div>
           ) : (

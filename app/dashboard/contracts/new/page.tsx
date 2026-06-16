@@ -19,7 +19,6 @@ function ContractForm() {
   const searchParams = useSearchParams()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [warning, setWarning] = useState("")
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState(searchParams.get("customerId") || "")
   const [totalAmount, setTotalAmount] = useState("")
@@ -47,7 +46,6 @@ function ContractForm() {
     e.preventDefault()
     setLoading(true)
     setError("")
-    setWarning("")
 
     const form = new FormData(e.currentTarget)
     const result = await createContract(form)
@@ -55,35 +53,17 @@ function ContractForm() {
     if (result.error) {
       setError(result.error)
       setLoading(false)
-    } else if (result.warning) {
-      setWarning(result.warning)
-      setLoading(false)
     } else {
       router.push("/dashboard/contracts")
       router.refresh()
     }
   }
 
-  if (warning) {
-    return (
-      <div className="max-w-2xl mx-auto p-6 text-center">
-        <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-6">
-          <p className="text-2xl mb-2">✅</p>
-          <p className="text-sm font-semibold text-foreground mb-2">تم إنشاء العقد بنجاح</p>
-          <p className="text-sm text-amber-700 dark:text-amber-400 mb-4">⚠️ {warning}</p>
-          <Link href="/dashboard/contracts" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium inline-block hover:opacity-90 transition-opacity">
-            العودة للعقود
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-2xl" dir="rtl">
       <PageHeader title="عقد جديد" description="إنشاء عقد تقسيط جديد مع جدولة الأقساط" />
 
-      <form onSubmit={handleSubmit} className="glass-card !p-4 sm:!p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="glass-card !p-3 sm:!p-6 space-y-4 sm:space-y-5">
         {error && <ErrorBanner message={error} />}
 
         <div>
@@ -162,26 +142,24 @@ function ContractForm() {
             {showGuarantor ? "إخفاء بيانات الضامن" : "+ إضافة ضامن"}
           </button>
 
-          {showGuarantor && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-              <div>
-                <Label>اسم الضامن</Label>
-                <Input name="guarantorName" type="text" />
-              </div>
-              <div>
-                <Label>رقم الهوية</Label>
-                <Input name="guarantorNationalId" type="text" />
-              </div>
-              <div>
-                <Label>الهاتف</Label>
-                <Input name="guarantorPhone" type="tel" />
-              </div>
-              <div>
-                <Label>العنوان</Label>
-                <Input name="guarantorAddress" type="text" />
-              </div>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden transition-all duration-300 ease-out ${showGuarantor ? "max-h-[500px] opacity-100 mt-3" : "max-h-0 opacity-0 pointer-events-none mt-0"}`}>
+            <div>
+              <Label>اسم الضامن</Label>
+              <Input name="guarantorName" type="text" />
             </div>
-          )}
+            <div>
+              <Label>رقم الهوية</Label>
+              <Input name="guarantorNationalId" type="text" />
+            </div>
+            <div>
+              <Label>الهاتف</Label>
+              <Input name="guarantorPhone" type="tel" />
+            </div>
+            <div>
+              <Label>العنوان</Label>
+              <Input name="guarantorAddress" type="text" />
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">

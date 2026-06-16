@@ -79,11 +79,11 @@ export default function PricingPage() {
         </p>
 
         <div className="inline-flex items-center gap-3 glass-card !p-1.5 !shadow-none mx-auto w-fit max-w-full">
-          <button onClick={() => setYearly(false)} className={`px-3 sm:px-5 py-2 rounded-lg text-sm font-medium transition-all ${!yearly ? "btn-gold !rounded-lg" : "text-muted-foreground hover:text-foreground"}`}>شهري</button>
-          <button onClick={() => setYearly(true)} className={`px-3 sm:px-5 py-2 rounded-lg text-sm font-medium transition-all ${yearly ? "btn-gold !rounded-lg" : "text-muted-foreground hover:text-foreground"}`}>سنوي <span className="text-[10px] text-emerald-500 font-bold">وفر ٢ شهر</span></button>
+          <button onClick={() => setYearly(false)} className={`px-3 sm:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${!yearly ? "btn-gold !rounded-lg" : "text-muted-foreground hover:text-foreground"}`}>شهري</button>
+          <button onClick={() => setYearly(true)} className={`px-3 sm:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${yearly ? "btn-gold !rounded-lg" : "text-muted-foreground hover:text-foreground"}`}>سنوي <span className="text-[10px] text-emerald-500 font-bold">وفر ٢ شهر</span></button>
         </div>
 
-        <div className="mt-8 sm:mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-right mx-auto max-w-5xl">
+        <div className="mt-8 sm:mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 text-right mx-auto max-w-5xl overflow-visible">
           {plans.map((plan) => {
             const price = yearly ? plan.yearly : plan.monthly
             const period = yearly ? "سنوياً" : plan.period

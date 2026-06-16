@@ -55,3 +55,6 @@ prisma/generated/
 .pi/
 .playwright-mcp/
 nul
+
+# Local Netlify folder
+.netlify

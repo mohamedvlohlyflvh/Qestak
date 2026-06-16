@@ -18,7 +18,7 @@ export default async function CollectionsPage() {
   const totalOverdueCents = collections.reduce((s, c) => s + c.overdueCents, 0)
 
   return (
-    <div className="px-4 sm:px-6" dir="rtl">
+    <div dir="rtl">
       <PageHeader
         title="التحصيل الذكي"
         description="أولويات التحصيل المبنية على تحليل سلوك الدفع"

@@ -25,7 +25,7 @@ export default async function NotificationsPage() {
   const unread = notifications.filter((n) => !n.isRead).length
 
   return (
-    <div className="px-4 sm:px-6" dir="rtl">
+    <div dir="rtl">
       <PageHeader
         title="الإشعارات"
         description={unread > 0 ? `${unread} إشعارات غير مقروءة` : "جميع الإشعارات مقروءة"}

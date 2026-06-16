@@ -28,18 +28,18 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen px-4" dir="rtl">
-      <div className="flex justify-end pt-4 px-4 max-w-sm mx-auto">
+    <div className="min-h-screen px-2 sm:px-4" dir="rtl">
+      <div className="flex justify-end pt-3 px-2 sm:px-4">
         <ThemeToggle iconOnly />
       </div>
-      <div className="flex items-center justify-center px-4" style={{ minHeight: "calc(100vh - 60px)" }}>
+      <div className="flex items-center justify-center px-2 sm:px-4" style={{ minHeight: "calc(100vh - 60px)" }}>
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <h1 className="text-3xl font-bold"><span className="text-gradient-gold">قسطك</span></h1>
           <p className="text-sm text-muted-foreground mt-1">منصة إدارة التقسيط الذكية</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="glass-card p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="glass-card !p-4 sm:!p-6 space-y-4">
           <h2 className="text-lg font-semibold text-center text-foreground">إنشاء حساب جديد</h2>
 
           {error && (

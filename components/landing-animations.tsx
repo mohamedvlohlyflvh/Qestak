@@ -24,10 +24,9 @@ export function LandingAnimations({ children }: { children: React.ReactNode }) {
       delay: 0.25,
       ease: "power2.out",
     })
-    gsap.from(".hero-cta > *", {
+    gsap.from(".hero-cta", {
       y: 20,
-      autoAlpha: 0,
-      stagger: 0.15,
+      opacity: 0,
       delay: 0.5,
       duration: 0.5,
       ease: "power2.out",
@@ -52,7 +51,7 @@ export function LandingAnimations({ children }: { children: React.ReactNode }) {
       })
     })
     mm.add("(prefers-reduced-motion: reduce)", () => {
-      gsap.set(["h1", "h1 + p", ".hero-cta > *", ".features-title", ".feature-card"], {
+      gsap.set(["h1", "h1 + p", ".hero-cta", ".features-title", ".feature-card"], {
         y: 0,
         autoAlpha: 1,
       })

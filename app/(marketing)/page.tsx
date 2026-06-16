@@ -40,7 +40,7 @@ export default function Home() {
           قسطك بتساعد التجار يديروا نظام التقسيط بتاعهم بذكاء — من تتبع الأقساط والتحصيل
           لتحليل المخاطر والتواصل التلقائي مع العملاء.
         </p>
-        <div className="flex items-center justify-center gap-4 flex-wrap">
+        <div className="hero-cta flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 w-full sm:w-auto mx-auto">
           <AuthButtons hero />
         </div>
       </section>

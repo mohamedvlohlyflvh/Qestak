@@ -39,6 +39,13 @@ export async function createContract(formData: FormData) {
   const merchant = await prisma.user.findUnique({ where: { id: merchantId } })
   if (!merchant) return { error: "Merchant not found" }
 
+  if (merchant.contractLimit !== null) {
+    const totalContracts = await prisma.contract.count({ where: { merchantId } })
+    if (totalContracts >= merchant.contractLimit) {
+      return { error: "لقد استنفدت حد العقود المسموح به. تواصل مع المشرف." }
+    }
+  }
+
   const plan = PLANS[merchant.plan as keyof typeof PLANS] || PLANS.FREE
 
   if (plan.id === "FREE") {
@@ -190,7 +197,7 @@ export async function createContract(formData: FormData) {
     })
 
     revalidatePath("/dashboard/contracts")
-    return { success: true as const, warning }
+    return { success: true as const }
   } catch (e) {
     return { error: "حدث خطأ أثناء إنشاء العقد: " + (e instanceof Error ? e.message : "خطأ غير معروف") }
   }

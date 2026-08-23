@@ -2,23 +2,38 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { deleteContract } from "@/app/actions/contracts"
+import { useSession } from "next-auth/react"
+import { getContractsLocal, deleteContractLocal } from "@/app/lib/dexie-service"
 
 export function DeleteContractButton({ id }: { id: string }) {
+  const { data: session } = useSession()
   const router = useRouter()
   const [confirm, setConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleDelete() {
+    if (!session?.user?.id) return
     setLoading(true)
-    const result = await deleteContract(id)
-    if (result.error) {
-      alert(result.error)
+
+    try {
+      const all = await getContractsLocal(session.user.id)
+      const found = all.find(c => c.serverId === id || String(c.id) === id)
+      
+      if (found?.id) {
+        const result = await deleteContractLocal(found.id)
+        if (result.error) {
+          alert(result.error)
+          setLoading(false)
+          return
+        }
+      }
+      
+      router.push("/dashboard/contracts")
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'خطأ غير معروف'
+      alert(msg)
       setLoading(false)
-      return
     }
-    router.push("/dashboard/contracts")
-    router.refresh()
   }
 
   if (!confirm) {

@@ -19,25 +19,35 @@ export function DashboardSidebar({ open, onClose }: { open: boolean; onClose: ()
 
   return (
     <>
+      {/* Scrim overlay — mobile only */}
       {open && (
         <div
-          className="fixed top-12 sm:top-16 inset-x-0 bottom-0 z-40 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-scrim/50 lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
         ref={ref}
-        className={`!fixed top-12 sm:top-16 bottom-0 right-0 z-50 w-64 glass-card !rounded-none !border-l !border-r-0 flex flex-col transition-transform duration-300 ease-out ${open ? "translate-x-0" : "translate-x-full"}`}
         dir="rtl"
+        className={`
+          fixed lg:relative
+          top-12 sm:top-16 lg:top-0
+          right-0 z-50 w-64
+          m3-drawer !rounded-none flex-col
+          transition-transform duration-300 ease-out
+          ${open ? "translate-x-0" : "translate-x-full"}
+          lg:translate-x-0
+          ${open ? "flex" : "hidden lg:flex"}
+        `}
       >
         <div className="p-5 border-b border-border flex items-center justify-between">
-          <Link href="/dashboard" className="text-xl font-bold">
+          <Link href="/dashboard" className="text-title-lg font-bold">
             <span className="text-gradient-gold">قسطك</span>
           </Link>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="lg:hidden p-1.5 rounded-full text-on-surface-variant hover:bg-muted transition-colors"
             aria-label="إغلاق القائمة"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

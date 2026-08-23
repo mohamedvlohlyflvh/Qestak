@@ -1,56 +1,76 @@
-import { auth } from "@/auth"
-import { redirect } from "next/navigation"
-import { prisma } from "@/app/lib/prisma"
+"use client"
+
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { getContractsLocal, getInstallmentsLocal } from "@/app/lib/dexie-service"
+import { DexieContract, DexieInstallment } from "@/app/lib/dexie-db"
 import { CollectionChart } from "./collection-chart"
 import { KpiCard } from "@/components/ui/kpi-card"
 import { Card } from "@/components/ui/card"
-import { syncStripeSubscription } from "@/app/lib/stripe"
 
-export default async function DashboardPage() {
-  const session = await auth()
-  if (!session?.user?.id) redirect("/login")
-  const userId = session.user.id
+export default function DashboardPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [contracts, setContracts] = useState<DexieContract[]>([])
+  const [installments, setInstallments] = useState<DexieInstallment[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { name: true, storeName: true, plan: true, stripeCustomerId: true, merchantId: true },
-  })
+  useEffect(() => {
+    if (status === "unauthenticated") { router.push("/login"); return }
+    if (!session?.user?.id) return
 
-  if (!user) redirect("/login")
+    const uid = session.user.id
 
-  if (user.plan === "FREE" && user.stripeCustomerId) {
-    await syncStripeSubscription(userId, user.stripeCustomerId)
+    async function loadData() {
+      try {
+        const localContracts = await getContractsLocal(uid)
+        const localInstallments = await getInstallmentsLocal()
+        // Scope installments to this merchant's contracts only
+        const contractIds = new Set(localContracts.map((c) => c.id))
+        const scopedInstallments = localInstallments.filter(
+          (i) => i.contractId !== undefined && contractIds.has(i.contractId)
+        )
+        setContracts(localContracts)
+        setInstallments(scopedInstallments)
+      } catch (err) {
+        console.error("Error loading local data:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [session, status, router])
+
+  if (status === "loading" || loading) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" /></div>
   }
 
-  const contracts = await prisma.contract.findMany({
-    where: { merchantId: userId },
-    include: { installments: true },
-  })
+  if (!session) return null
 
   const totalCapital = contracts.reduce((s, c) => s + c.totalAmount, 0)
-  const totalRemaining = contracts.reduce((s, c) => s + c.remainingAmount, 0)
-  const totalCollected = contracts
-    .flatMap((c) => c.installments)
-    .filter((i) => i.status === "PAID" || i.status === "PARTIAL")
-    .reduce((s, i) => s + (i.amountPaid || 0), 0)
 
   const now = new Date()
   const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-  const upcomingCollections = contracts
-    .flatMap((c) => c.installments)
-    .filter((i) => i.status === "UPCOMING" && i.dueDate >= now && i.dueDate <= nextWeek)
+
+  const upcomingCollections = installments
+    .filter((i) => i.status === "UPCOMING" && new Date(i.dueDate) >= now && new Date(i.dueDate) <= nextWeek)
     .reduce((s, i) => s + i.amount, 0)
 
-  const overdue = contracts
-    .flatMap((c) => c.installments)
+  const totalCollected = installments
+    .filter((i) => i.status === "PAID" || i.status === "PARTIAL")
+    .reduce((s, i) => s + (i.amountPaid || 0), 0)
+
+  const overdue = installments
     .filter((i) => i.status === "OVERDUE")
     .reduce((s, i) => s + i.amount, 0)
 
   const delinquentRatio = totalCapital > 0 ? Math.round((overdue / totalCapital) * 100) : 0
 
   const statusCounts = { PAID: 0, UPCOMING: 0, OVERDUE: 0, PARTIAL: 0 }
-  contracts.flatMap((c) => c.installments).forEach((i) => {
-    if (statusCounts[i.status as keyof typeof statusCounts] !== undefined) {
+  installments.forEach((i) => {
+    if (i.status in statusCounts) {
       statusCounts[i.status as keyof typeof statusCounts]++
     }
   })
@@ -59,42 +79,32 @@ export default async function DashboardPage() {
   const chartData = months.map((name, idx) => {
     const monthStart = new Date(now.getFullYear(), idx, 1)
     const monthEnd = new Date(now.getFullYear(), idx + 1, 1)
-    const actual = contracts
-      .flatMap((c) => c.installments)
-      .filter((i) => (i.status === "PAID" || i.status === "PARTIAL") && i.paidDate && i.paidDate >= monthStart && i.paidDate < monthEnd)
+    const actual = installments
+      .filter((i) => (i.status === "PAID" || i.status === "PARTIAL") && i.paidDate && new Date(i.paidDate) >= monthStart && new Date(i.paidDate) < monthEnd)
       .reduce((s, i) => s + (i.amountPaid || i.amount), 0)
-    const projected = contracts
-      .flatMap((c) => c.installments)
-      .filter((i) => i.dueDate >= monthStart && i.dueDate < monthEnd)
+    const projected = installments
+      .filter((i) => new Date(i.dueDate) >= monthStart && new Date(i.dueDate) < monthEnd)
       .reduce((s, i) => s + i.amount, 0)
-    return { name, projected: Math.round(projected / 100), actual: Math.round(actual / 100) }
+    return { name, projected: Math.round(projected), actual: Math.round(actual) }
   })
 
   return (
     <div dir="rtl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">
-          مرحباً، {user.name || user.storeName}
+          مرحباً، {((session?.user as { name?: string; storeName?: string })?.name || (session?.user as { storeName?: string })?.storeName || session?.user?.email || "")}
         </h1>
         <div className="flex items-center gap-2 mt-1">
           <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-lg">
-            {user.merchantId || "—"}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            {user.plan === "FREE" ? "الخطة المجانية" : user.plan === "BASIC" ? "الخطة الأساسية" : "الخطة الاحترافية"}
-            {user.plan !== "PRO" && (
-              <a href="/dashboard/subscription" className="text-primary hover:underline font-medium mr-1">
-                — قم بالترقية
-              </a>
-            )}
+            {(session.user as { merchantId?: string })?.merchantId || "—"}
           </span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <KpiCard label="رأس المال الموزع" value={`${(totalCapital / 100).toLocaleString("ar-EG")} ج.م`} />
-        <KpiCard label="المتحصلات المتوقعة (أسبوع)" value={`${(upcomingCollections / 100).toLocaleString("ar-EG")} ج.م`} />
-        <KpiCard label="المحصل فعلياً" value={`${(totalCollected / 100).toLocaleString("ar-EG")} ج.م`} />
+        <KpiCard label="رأس المال الموزع" value={`${totalCapital.toLocaleString("ar-EG")} ج.م`} />
+        <KpiCard label="المتحصلات المتوقعة (أسبوع)" value={`${upcomingCollections.toLocaleString("ar-EG")} ج.م`} />
+        <KpiCard label="المحصل فعلياً" value={`${totalCollected.toLocaleString("ar-EG")} ج.م`} />
         <KpiCard label="نسبة المتعثرات" value={`${delinquentRatio}%`} danger={delinquentRatio > 20} />
       </div>
 
@@ -107,10 +117,10 @@ export default async function DashboardPage() {
         <Card>
           <h2 className="text-sm font-semibold text-muted-foreground mb-4">حالة الأقساط</h2>
           <div className="space-y-4">
-            <StatusRow label="مدفوع" count={statusCounts.PAID} color="bg-emerald-500" total={contracts.reduce((s, c) => s + c.installments.length, 0)} />
-            <StatusRow label="قادم" count={statusCounts.UPCOMING} color="bg-primary" total={contracts.reduce((s, c) => s + c.installments.length, 0)} />
-            <StatusRow label="متأخر" count={statusCounts.OVERDUE} color="bg-destructive" total={contracts.reduce((s, c) => s + c.installments.length, 0)} />
-            <StatusRow label="جزئي" count={statusCounts.PARTIAL} color="bg-amber-500" total={contracts.reduce((s, c) => s + c.installments.length, 0)} />
+            <StatusRow label="مدفوع" count={statusCounts.PAID} color="bg-emerald-500" total={installments.length} />
+            <StatusRow label="قادم" count={statusCounts.UPCOMING} color="bg-primary" total={installments.length} />
+            <StatusRow label="متأخر" count={statusCounts.OVERDUE} color="bg-destructive" total={installments.length} />
+            <StatusRow label="جزئي" count={statusCounts.PARTIAL} color="bg-amber-500" total={installments.length} />
           </div>
         </Card>
       </div>
@@ -121,7 +131,7 @@ export default async function DashboardPage() {
           <SummaryItem label="إجمالي العقود" value={contracts.length} />
           <SummaryItem label="العقود النشطة" value={contracts.filter(c => c.status === "ACTIVE").length} />
           <SummaryItem label="العقود المكتملة" value={contracts.filter(c => c.status === "COMPLETED").length} />
-          <SummaryItem label="إجمالي الأقساط" value={contracts.reduce((s, c) => s + c.installments.length, 0)} />
+          <SummaryItem label="إجمالي الأقساط" value={installments.length} />
         </div>
       </Card>
     </div>

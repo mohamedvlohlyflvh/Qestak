@@ -2,29 +2,28 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/app/lib/prisma"
 import { SubscriptionManager } from "./subscription-manager"
-import { PLANS, syncStripeSubscription } from "@/app/lib/stripe"
+import { TrialBadge } from "./trial-badge"
+import { PLANS } from "@/app/lib/plans"
+
+function getRemainingTrialDays(createdAt: Date): number {
+  const trialDays = PLANS.FREE.trialDays
+  const elapsed = Math.floor((Date.now() - createdAt.getTime()) / 86400000)
+  return Math.max(0, trialDays - elapsed)
+}
 
 export default async function SubscriptionPage() {
   const session = await auth()
   if (!session?.user?.id) redirect("/login")
   const userId = session.user.id
 
-  let user = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, stripeCustomerId: true, stripeSubscriptionId: true, subscriptionEnds: true },
+    select: { plan: true, createdAt: true },
   })
   if (!user) redirect("/login")
 
-  if (user.plan === "FREE" && user.stripeCustomerId) {
-    await syncStripeSubscription(userId, user.stripeCustomerId)
-    const refreshed = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { plan: true, stripeCustomerId: true, stripeSubscriptionId: true, subscriptionEnds: true },
-    })
-    if (refreshed) user = refreshed
-  }
-
-  const plan = PLANS[user.plan]
+  const plan = PLANS[user.plan as keyof typeof PLANS] ?? PLANS.FREE
+  const remainingTrialDays = user.plan === "FREE" ? getRemainingTrialDays(user.createdAt) : null
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -37,18 +36,11 @@ export default async function SubscriptionPage() {
         <p className="text-xs text-muted-foreground mb-2">الخطة الحالية</p>
         <p className="text-xl font-bold text-foreground">{plan.name}</p>
         <div className="flex items-center justify-center gap-3 mt-2">
-          <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">
-            {typeof plan.contractsPerWeek === "number" ? `${plan.contractsPerWeek} عقد/أسبوع` : "غير محدود"}
-          </span>
-          {user.subscriptionEnds && (
-            <span className="text-xs text-muted-foreground">
-              حتى {user.subscriptionEnds.toLocaleDateString("ar-EG")}
-            </span>
-          )}
+          <TrialBadge remainingTrialDays={remainingTrialDays} planId={user.plan} />
         </div>
       </div>
 
-      <SubscriptionManager currentPlan={user.plan} hasSubscription={!!user.stripeSubscriptionId} />
+      <SubscriptionManager currentPlan={user.plan} />
     </div>
   )
 }

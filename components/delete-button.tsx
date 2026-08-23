@@ -2,23 +2,38 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { deleteCustomer } from "@/app/actions/customers"
+import { useSession } from "next-auth/react"
+import { getCustomersLocal, deleteCustomerLocal } from "@/app/lib/dexie-service"
 
-export function DeleteCustomerButton({ id, name }: { id: string; name: string }) {
+export function DeleteCustomerButton({ id }: { id: string; name: string }) {
+  const { data: session } = useSession()
   const router = useRouter()
   const [confirm, setConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleDelete() {
+    if (!session?.user?.id) return
     setLoading(true)
-    const result = await deleteCustomer(id)
-    if (result.error) {
-      alert(result.error)
+
+    try {
+      const all = await getCustomersLocal(session.user.id)
+      const found = all.find(c => c.serverId === id || String(c.id) === id)
+      
+      if (found?.id) {
+        const result = await deleteCustomerLocal(found.id)
+        if (result.error) {
+          alert(result.error)
+          setLoading(false)
+          return
+        }
+      }
+      
+      router.push("/dashboard/customers")
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'خطأ غير معروف'
+      alert(msg)
       setLoading(false)
-      return
     }
-    router.push("/dashboard/customers")
-    router.refresh()
   }
 
   if (!confirm) {

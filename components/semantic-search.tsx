@@ -2,16 +2,20 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { db } from "@/app/lib/dexie-db"
 
 interface SearchResult {
   type: "customer" | "contract"
-  id: string
+  id: number
   label: string
   sublabel: string
 }
 
 export function SemanticSearch() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const merchantId = session?.user?.id
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SearchResult[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -32,32 +36,61 @@ export function SemanticSearch() {
 
   const doSearch = useCallback(async (q: string) => {
     if (!q.trim()) { setResults([]); setIsOpen(false); return }
+    if (!merchantId) { setResults([]); setIsOpen(false); return }
     setIsSearching(true)
     try {
-      const [customers, contracts] = await Promise.all([
-        fetch("/api/customers").then((r) => r.json()),
-        fetch("/api/contracts-summary").then((r) => r.json()).catch(() => []),
-      ])
-      const ql = q.toLowerCase()
+      const lower = q.trim().toLowerCase()
       const matched: SearchResult[] = []
-      for (const c of (customers || [])) {
-        if (c.name?.toLowerCase().includes(ql) || c.nationalId?.includes(ql) || c.phone?.includes(ql)) {
-          matched.push({ type: "customer", id: c.id, label: c.name, sublabel: `${c.nationalId} — ${c.phone}` })
-        }
+
+      // Search customers locally via Dexie
+      const customers = await db.customers
+        .filter((c) =>
+          c.merchantId === merchantId &&
+          (c.name.toLowerCase().includes(lower) ||
+          c.nationalId.toLowerCase().includes(lower) ||
+          c.phone.toLowerCase().includes(lower))
+        )
+        .limit(5)
+        .toArray()
+
+      for (const c of customers) {
+        matched.push({
+          type: "customer",
+          id: c.id!,
+          label: c.name,
+          sublabel: `${c.nationalId} — ${c.phone}`,
+        })
       }
-      for (const c of (contracts || [])) {
-        if (c.contractNumber?.toLowerCase().includes(ql) || c.customerName?.toLowerCase().includes(ql)) {
-          matched.push({ type: "contract", id: c.id, label: `عقد ${c.contractNumber}`, sublabel: c.customerName })
-        }
+
+      // Search contracts locally via Dexie
+      const contracts = await db.contracts
+        .filter((c) =>
+          c.merchantId === merchantId &&
+          (c.contractNumber.toLowerCase().includes(lower) ||
+          (c.customerName ?? "").toLowerCase().includes(lower))
+        )
+        .limit(5)
+        .toArray()
+
+      for (const c of contracts) {
+        matched.push({
+          type: "contract",
+          id: c.id!,
+          label: `عقد ${c.contractNumber}`,
+          sublabel: c.customerName ?? "",
+        })
       }
+
       setResults(matched.slice(0, 8))
       setIsOpen(matched.length > 0)
-    } catch { setResults([]) }
+    } catch {
+      setResults([])
+    }
     setIsSearching(false)
-  }, [])
+  }, [merchantId])
 
   useEffect(() => {
-    const timer = setTimeout(() => doSearch(query), 300)
+    const timer = setTimeout(() => doSearch(query), 250)
     return () => clearTimeout(timer)
   }, [query, doSearch])
 
@@ -69,7 +102,7 @@ export function SemanticSearch() {
   }
 
   return (
-    <div className="relative w-full max-w-full sm:max-w-md" ref={dropdownRef}>
+    <div className="relative w-full max-w-full sm:max-w-md min-w-0" ref={dropdownRef}>
       <div className="relative">
         <input
           ref={inputRef}

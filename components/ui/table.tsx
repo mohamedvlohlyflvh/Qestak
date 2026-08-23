@@ -2,7 +2,7 @@ import { ReactNode, ThHTMLAttributes, TdHTMLAttributes } from "react"
 
 export function Table({ children }: { children: ReactNode }) {
   return (
-    <div className="glass-card !p-0 overflow-hidden">
+    <div className="m3-card-outlined !p-0 overflow-hidden">
       {children}
     </div>
   )
@@ -13,13 +13,13 @@ export function TableWrapper({ children }: { children: ReactNode }) {
 }
 
 export function TableInner({ children }: { children: ReactNode }) {
-  return <table className="w-full text-sm">{children}</table>
+  return <table className="w-full text-sm" dir="rtl">{children}</table>
 }
 
 export function THead({ children }: { children: ReactNode }) {
   return (
     <thead>
-      <tr className="border-b border-border bg-[var(--color-primary)]/5">{children}</tr>
+      <tr className="border-b border-border bg-surface-container-low">{children}</tr>
     </thead>
   )
 }
@@ -27,8 +27,7 @@ export function THead({ children }: { children: ReactNode }) {
 export function Th({ children, className = "", ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={`text-right p-3 font-medium text-muted-foreground border-l border-border last:border-l-0 ${className}`}
-      style={{ unicodeBidi: "plaintext" }}
+      className={`text-right p-3 font-medium text-sm text-on-surface-variant border-l border-border last:border-l-0 ${className}`}
       {...props}
     >
       {children}
@@ -40,7 +39,6 @@ export function Td({ children, className = "", ...props }: TdHTMLAttributes<HTML
   return (
     <td
       className={`p-3 border-l border-border last:border-l-0 ${className}`}
-      style={{ unicodeBidi: "plaintext" }}
       {...props}
     >
       {children}
@@ -56,9 +54,7 @@ export function TRow({ children, className = "", noHover }: { children?: ReactNo
   return (
     <tr
       className={`border-b border-border last:border-b-0${
-        noHover
-          ? ""
-          : " transition-colors hover:bg-[var(--color-primary)]/3"
+        noHover ? "" : " transition-colors hover:bg-surface-container-low"
       } ${className}`}
     >
       {children}

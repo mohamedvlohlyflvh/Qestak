@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LandingAnimations } from "@/components/landing-animations"
 import { AuthButtons } from "@/components/auth-buttons"
@@ -8,7 +7,7 @@ const features = [
   { icon: "📊", title: "لوحة تحكم مالية", desc: "مؤشرات أداء آنية وإحصائيات دقيقة عن المحفظة الائتمانية" },
   { icon: "👥", title: "إدارة العملاء", desc: "سجل كامل مع درجات ائتمانية وتصنيف ذكي للمخاطر" },
   { icon: "📄", title: "إدارة العقود", desc: "تقسيم آلي للأقساط وجدولة مع مراقبة يومية" },
-  { icon: "🔔", title: "إشعارات ذكية", desc: "تذكير تلقائي للعملاء قبل استحقاق الأقساط" },
+  { icon: "📱", title: "يعمل دون اتصال", desc: "بياناتك محفوظة على جهازك وتعمل حتى بدون إنترنت" },
   { icon: "🔍", title: "بحث سريع", desc: "ابحث عن أي عميل أو عقد بسرعة — بالاسم أو الرقم" },
 ]
 
@@ -21,7 +20,7 @@ export default function Home() {
           <span className="text-gradient-gold">قسطك</span>
         </span>
         <div className="flex items-center gap-3">
-          <AuthButtons header />
+          <AuthButtons />
           <ThemeToggle iconOnly />
         </div>
       </header>
@@ -46,13 +45,13 @@ export default function Home() {
       </section>
 
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-20 sm:pb-28">
-        <h2 className="text-3xl font-bold text-center mb-4">كل اللي تحتاجه لإدارة التقسيط</h2>
+        <h2 className="features-title text-3xl font-bold text-center mb-4">كل اللي تحتاجه لإدارة التقسيط</h2>
         <p className="text-muted-foreground text-center max-w-xl mx-auto mb-12">
           أدوات متكاملة لمساعدتك على إدارة أعمال التقسيط بكفاءة واحترافية
         </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="features-grid grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((f) => (
-            <div key={f.title} className="glass-card-interactive p-4 sm:p-6">
+            <div key={f.title} className="feature-card glass-card-interactive p-4 sm:p-6">
               <span className="text-3xl">{f.icon}</span>
               <h3 className="text-base font-bold mt-4 mb-1.5 text-foreground">{f.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>

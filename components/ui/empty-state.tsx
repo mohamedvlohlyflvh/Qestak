@@ -10,9 +10,9 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="py-16 text-center text-muted-foreground">
-      <p className="text-lg mb-2">{title}</p>
-      <p className="text-sm mb-6">{description}</p>
+    <div className="py-16 text-center text-on-surface-variant">
+      <p className="text-title-md mb-2">{title}</p>
+      <p className="text-body-md mb-6">{description}</p>
       {action}
     </div>
   )

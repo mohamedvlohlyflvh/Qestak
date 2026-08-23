@@ -2,38 +2,35 @@
 
 import { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
-import { createContract } from "@/app/actions/contracts"
+import { useSession } from "next-auth/react"
+import { createContractWithSchedule, buildInstallmentSchedule, addGuarantorLocal } from "@/app/lib/dexie-service"
+import { getCustomersLocal } from "@/app/lib/dexie-service"
+import { DexieCustomer } from "@/app/lib/dexie-db"
 import { PageHeader } from "@/components/ui/page-header"
 import { Label, Input, Select, ErrorBanner, Button } from "@/components/ui/card"
 
-interface Customer {
-  id: string
-  name: string
-  nationalId: string
-  phone: string
-}
-
 function ContractForm() {
+  const { data: session } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [customers, setCustomers] = useState<DexieCustomer[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState(searchParams.get("customerId") || "")
   const [totalAmount, setTotalAmount] = useState("")
   const [downPayment, setDownPayment] = useState("")
   const [installmentCount, setInstallmentCount] = useState("6")
   const [installmentInterval, setInstallmentInterval] = useState("30")
+  const [totalPeriodValue, setTotalPeriodValue] = useState("")
+  const [totalPeriodUnit, setTotalPeriodUnit] = useState("month")
   const [interestRate, setInterestRate] = useState("")
   const [showGuarantor, setShowGuarantor] = useState(false)
 
   useEffect(() => {
-    fetch("/api/customers")
-      .then((r) => r.json())
-      .then(setCustomers)
-      .catch(() => {})
-  }, [])
+    if (session?.user?.id) {
+      getCustomersLocal(session.user.id).then(setCustomers).catch(() => {})
+    }
+  }, [session?.user?.id])
 
   const remaining = Math.max(0, (parseFloat(totalAmount) || 0) - (parseFloat(downPayment) || 0))
   const rate = parseFloat(interestRate) || 0
@@ -44,18 +41,68 @@ function ContractForm() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!session?.user?.id) { setError("يجب تسجيل الدخول"); return }
     setLoading(true)
     setError("")
 
     const form = new FormData(e.currentTarget)
-    const result = await createContract(form)
+    const formCustomerId = form.get("customerId") as string
+    const formTotalAmount = parseFloat(form.get("totalAmount") as string) || 0
+    const formDownPayment = parseFloat(form.get("downPayment") as string) || 0
+    const formInterestRate = parseFloat(form.get("interestRate") as string) || 0
+    const formInstallmentInterval = parseInt(form.get("installmentInterval") as string) || 30
+    const formDescription = (form.get("description") as string) || undefined
+    const formTotalPeriodValue = parseFloat(form.get("totalPeriodValue") as string) || undefined
+
+    // Find customer
+    const selectedCustomer = customers.find(c => c.serverId === formCustomerId || String(c.id) === formCustomerId)
+    const remainingAmount = formTotalAmount - formDownPayment
+
+    // Generate contract number
+    const now = new Date()
+    const contractNumber = `QST-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
+
+    const count = parseInt(installmentCount) || 0
+    const interval = formInstallmentInterval
+
+    const result = await createContractWithSchedule({
+      contractNumber,
+      totalAmount: formTotalAmount,
+      downPayment: formDownPayment,
+      remainingAmount,
+      interestRate: formInterestRate > 0 ? formInterestRate : undefined,
+      installmentInterval: interval,
+      totalPeriodValue: formTotalPeriodValue,
+      totalPeriodUnit,
+      description: formDescription,
+      status: "ACTIVE",
+      customerId: selectedCustomer?.id,
+      customerServerId: selectedCustomer?.serverId,
+      customerName: selectedCustomer?.name || '',
+    }, session.user.id, count > 0 ? buildInstallmentSchedule({
+      totalAmount: remainingAmount,
+      interestRate: formInterestRate > 0 ? formInterestRate : undefined,
+      installmentCount: count,
+      installmentInterval: interval,
+      startDate: new Date(),
+    }) : [])
 
     if (result.error) {
       setError(result.error)
       setLoading(false)
     } else {
+      // Save guarantor if provided
+      const guarantorName = (form.get("guarantorName") as string)?.trim()
+      if (guarantorName && result.localId) {
+        await addGuarantorLocal({
+          name: guarantorName,
+          nationalId: (form.get("guarantorNationalId") as string)?.trim() || "",
+          phone: (form.get("guarantorPhone") as string)?.trim() || "",
+          address: (form.get("guarantorAddress") as string)?.trim() || undefined,
+          contractId: result.localId,
+        })
+      }
       router.push("/dashboard/contracts")
-      router.refresh()
     }
   }
 
@@ -76,7 +123,7 @@ function ContractForm() {
           >
             <option value="">اختر عميل...</option>
             {customers.map((c) => (
-              <option key={c.id} value={c.id}>{c.name} — {c.nationalId}</option>
+              <option key={c.id} value={c.serverId || String(c.id)}>{c.name} — {c.nationalId}</option>
             ))}
           </Select>
         </div>
@@ -107,9 +154,34 @@ function ContractForm() {
               onChange={(e) => setInstallmentCount(e.target.value)} />
           </div>
           <div>
-            <Label>المدة (يوم)</Label>
-            <Input name="installmentInterval" type="number" min="1" value={installmentInterval}
+            <Label required>المدة بين كل قسط (يوم)</Label>
+            <Input name="installmentInterval" type="number" min="1" required value={installmentInterval}
               onChange={(e) => setInstallmentInterval(e.target.value)} />
+          </div>
+        </div>
+
+        <div>
+          <Label>وصف العقد</Label>
+          <textarea
+            name="description"
+            rows={3}
+            placeholder="معلومات إضافية عن العقد"
+            className="w-full px-3 py-2.5 rounded-lg border border-border bg-background/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary/50 transition-all resize-y"
+          />
+        </div>
+
+        <div>
+          <Label>مدة السداد بالكامل</Label>
+          <div className="flex gap-2">
+            <Input name="totalPeriodValue" type="number" step="0.5" min="0" placeholder="مثال: 1.5" value={totalPeriodValue}
+              onChange={(e) => setTotalPeriodValue(e.target.value)} className="flex-1" />
+            <select name="totalPeriodUnit" value={totalPeriodUnit}
+              onChange={(e) => setTotalPeriodUnit(e.target.value)}
+              className="w-28 px-3 py-2.5 rounded-lg border border-border bg-background/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="day">يوم</option>
+              <option value="month">شهر</option>
+              <option value="year">سنة</option>
+            </select>
           </div>
         </div>
 

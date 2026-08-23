@@ -19,11 +19,20 @@ export default function RegisterPage() {
     const form = new FormData(e.currentTarget)
     const result = await registerUser(form)
 
+    if ("exists" in result) {
+      router.push("/login?existing=1")
+      return
+    }
+
     if (result.error) {
       setError(result.error)
       setLoading(false)
     } else {
-      router.push("/login?registered=true")
+      if (result.loginError) {
+        router.push("/login?registered=true")
+      } else {
+        router.push("/dashboard")
+      }
     }
   }
 

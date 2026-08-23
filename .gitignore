@@ -58,3 +58,11 @@ nul
 
 # Local Netlify folder
 .netlify
+
+.vercel
+
+# system files
+/.locks/
+/.vscode/
+nul
+*.log

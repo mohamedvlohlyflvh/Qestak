@@ -3,16 +3,18 @@
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 
-export function AuthButtons({ header, hero }: { header?: boolean; hero?: boolean }) {
+export function AuthButtons({ hero }: { hero?: boolean }) {
   const { data: session } = useSession()
   const isLoggedIn = !!session?.user
 
   if (isLoggedIn) {
     return (
       <>
-        <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
-          {session.user.merchantId || ""}
-        </span>
+        {session.user.merchantId && (
+          <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
+            {session.user.merchantId}
+          </span>
+        )}
         <Link
           href="/dashboard"
             className={hero ? "btn-gold text-xs sm:text-sm !py-1.5 sm:!py-2 !px-4 sm:!px-5" : "btn-gold text-xs !py-1.5 !px-3"}

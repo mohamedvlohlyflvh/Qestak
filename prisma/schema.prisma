@@ -27,16 +27,7 @@ enum InstallmentStatus {
   PARTIAL
 }
 
-enum NotificationPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
 
-enum NotificationChannel {
-  IN_APP
-  WHATSAPP
-}
 
 model User {
   id                String           @id @default(cuid())
@@ -48,10 +39,6 @@ model User {
   storeName         String?
   phone             String?
   plan              PlanStatus       @default(FREE)
-  stripeCustomerId  String?          @unique
-  stripeSubscriptionId String?
-  subscriptionEnds  DateTime?
-
   merchantId        String?          @unique
   contractLimit     Int?
   isAdmin           Boolean          @default(false)
@@ -62,8 +49,7 @@ model User {
   sessions          Session[]
   customers         Customer[]
   contracts         Contract[]
-  payments          Payment[]
-  notifications     Notification[]
+
 
   @@index([email])
   @@index([merchantId])
@@ -107,19 +93,18 @@ model VerificationToken {
 model Customer {
   id                 String               @id @default(cuid())
   name               String
-  nationalId         String               @unique
+  nationalId         String
   phone              String
   address            String
   jobTitle           String?
   creditScore        Int                  @default(100)
-
-  notificationChannel NotificationChannel @default(IN_APP)
   merchantId         String
   merchant           User                 @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   contracts          Contract[]
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
+  @@unique([nationalId, merchantId])
   @@index([merchantId])
   @@index([nationalId])
 }
@@ -132,6 +117,9 @@ model Contract {
   remainingAmount Float
   interestRate    Float?
   installmentInterval Int?       @default(30)
+  totalPeriodValue  Float?
+  totalPeriodUnit   String?
+  description     String?
   status          ContractStatus   @default(ACTIVE)
   merchantId      String
   merchant        User             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
@@ -175,33 +163,4 @@ model Installment {
   @@index([dueDate, status])
 }
 
-model Notification {
-  id          String               @id @default(cuid())
-  title       String
-  message     String
-  isRead      Boolean              @default(false)
-  priority    NotificationPriority @default(LOW)
-  merchantId  String
-  merchant    User                 @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  createdAt   DateTime             @default(now())
 
-  @@index([merchantId, isRead])
-}
-
-model Payment {
-  id                String    @id @default(cuid())
-  amount            Float
-  status            String
-  stripeReferenceId String    @unique
-  merchantId        String
-  merchant          User      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  createdAt         DateTime  @default(now())
-}
-
-model WebhookEvent {
-  id        String   @id
-  type      String
-  createdAt DateTime @default(now())
-
-  @@index([createdAt])
-}

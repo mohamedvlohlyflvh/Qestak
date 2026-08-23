@@ -1,35 +1,52 @@
+"use client"
+
 import Link from "next/link"
-import { notFound } from "next/navigation"
-import { auth } from "@/auth"
-import { redirect } from "next/navigation"
-import { getCustomer } from "@/app/actions/customers"
-import { calculateCreditScore, getCreditGradeColor } from "@/app/lib/credit-score"
-import { Table, TableWrapper, TableInner, THead, Th, TBody, TRow, Td } from "@/components/ui/table"
-import { ContractBadge } from "@/components/ui/badge"
+import { useState, useEffect, use } from "react"
+import { useSession } from "next-auth/react"
+import { getCustomersLocal } from "@/app/lib/dexie-service"
+import { DexieCustomer } from "@/app/lib/dexie-db"
 import { Card } from "@/components/ui/card"
-import { DeleteCustomerButton } from "@/components/delete-button"
 
-export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session?.user?.id) redirect("/login")
+export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  const { data: session, status } = useSession()
+  const [customer, setCustomer] = useState<DexieCustomer | undefined>()
+  const [loading, setLoading] = useState(true)
 
-  const { id } = await params
-  const customer = await getCustomer(id)
-  if (!customer) notFound()
+  useEffect(() => {
+    const uid = session?.user?.id
+    if (!uid) return
 
-  const allInstallments = customer.contracts.flatMap((c) => c.installments || [])
-  const creditScore = calculateCreditScore({
-    totalContracts: customer.contracts.length,
-    completedContracts: customer.contracts.filter((c) => c.status === "COMPLETED").length,
-    totalInstallments: allInstallments.length,
-    paidOnTime: allInstallments.filter((i) => i.status === "PAID").length + allInstallments.filter((i) => i.status === "PARTIAL").length,
-    latePayments: allInstallments.filter((i) => i.status === "OVERDUE").length,
-    defaultedInstallments: 0,
-    averagePaymentDelayDays: 0,
-    monthsSinceFirstContract: customer.contracts.length > 0
-      ? Math.max(1, Math.floor((Date.now() - new Date(Math.min(...customer.contracts.map((c) => new Date(c.createdAt).getTime()))).getTime()) / 2592000000))
-      : 0,
-  })
+    async function load() {
+      setLoading(true)
+      try {
+        const allCustomers = await getCustomersLocal(uid)
+        const found = allCustomers.find(c => c.serverId === id || String(c.id) === id)
+        setCustomer(found)
+      } catch (error) {
+        console.error("Error loading customer:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [id, session?.user?.id])
+
+  if (status === "loading" || loading) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div></div>
+  }
+
+  
+
+  if (!customer) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-muted-foreground mb-4">لم يتم العثور على العميل</p>
+        <Link href="/dashboard/customers" className="text-primary hover:underline">← العودة إلى العملاء</Link>
+      </div>
+    )
+  }
 
   return (
     <div dir="rtl">
@@ -39,10 +56,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </Link>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">{customer.name}</h1>
-          <div className="flex gap-2 items-center">
-            <Link href={`/dashboard/customers/${customer.id}/edit`} className="btn-glass !py-1.5 !px-3 text-xs">تعديل</Link>
-            <DeleteCustomerButton id={customer.id} name={customer.name} />
-          </div>
         </div>
       </div>
 
@@ -57,55 +70,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               <InfoRow label="الوظيفة" value={customer.jobTitle || "—"} />
             </dl>
           </Card>
-
-          <Card>
-            <h2 className="text-sm font-semibold text-muted-foreground mb-3">التصنيف الائتماني</h2>
-            <div className="flex items-center gap-3">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold ${creditScore.color}/20`}>
-                <span className={`${creditScore.color.replace("bg-", "text-")}`}>{creditScore.grade}</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">{creditScore.label}</p>
-                <p className="text-xs text-muted-foreground">درجة {creditScore.score} — تصنيف ائتماني ذكي</p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-2 space-y-4">
-          <Table>
-            <div className="p-4 border-b border-border bg-[var(--color-primary)]/5 flex items-center justify-between">
-              <h2 className="font-semibold text-foreground">العقود</h2>
-              <Link href={`/dashboard/contracts/new?customerId=${customer.id}`} className="btn-gold !py-1.5 !px-3 text-xs">
-                + عقد جديد
-              </Link>
-            </div>
-
-            {customer.contracts.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm">لا توجد عقود لهذا العميل</div>
-            ) : (
-              <TableWrapper><TableInner>
-                <THead>
-                  <Th>رقم العقد</Th>
-                  <Th>المبلغ</Th>
-                  <Th className="text-center">الأقساط</Th>
-                  <Th className="text-center">الحالة</Th>
-                  <Th className="text-center">التاريخ</Th>
-                </THead>
-                <TBody>
-                  {customer.contracts.map((c) => (
-                    <TRow key={c.id}>
-                      <Td className="font-medium text-foreground">{c.contractNumber}</Td>
-                      <Td className="text-muted-foreground">{(c.totalAmount / 100).toLocaleString("ar-EG")} ج.م</Td>
-                      <Td className="text-center text-muted-foreground">{c._count.installments}</Td>
-                      <Td className="text-center"><ContractBadge status={c.status} /></Td>
-                      <Td className="text-center text-muted-foreground text-xs">{new Date(c.createdAt).toLocaleDateString("ar-EG")}</Td>
-                    </TRow>
-                  ))}
-                </TBody>
-              </TableInner></TableWrapper>
-            )}
-          </Table>
         </div>
       </div>
     </div>

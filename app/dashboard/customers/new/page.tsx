@@ -2,29 +2,40 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createCustomer } from "@/app/actions/customers"
+import { useSession } from "next-auth/react"
+import { addCustomerLocal } from "@/app/lib/dexie-service"
 import { PageHeader } from "@/components/ui/page-header"
-import { Card, Label, Input, ErrorBanner, Button } from "@/components/ui/card"
+import { Label, Input, ErrorBanner, Button } from "@/components/ui/card"
 
 export default function NewCustomerPage() {
+  const { data: session } = useSession()
   const router = useRouter()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!session?.user?.id) { setError("يجب تسجيل الدخول"); return }
     setLoading(true)
     setError("")
 
     const form = new FormData(e.currentTarget)
-    const result = await createCustomer(form)
+    const merchantId = session.user.id
+
+    const result = await addCustomerLocal({
+      name: form.get("name") as string,
+      nationalId: form.get("nationalId") as string,
+      phone: form.get("phone") as string,
+      address: form.get("address") as string,
+      jobTitle: (form.get("jobTitle") as string) || undefined,
+      creditScore: 100,
+    }, merchantId)
 
     if (result.error) {
       setError(result.error)
       setLoading(false)
     } else {
       router.push("/dashboard/customers")
-      router.refresh()
     }
   }
 

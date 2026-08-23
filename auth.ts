@@ -1,9 +1,20 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import Google from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/app/lib/prisma"
+
+// Validate required environment variables
+if (!process.env.AUTH_SECRET) {
+  console.error("ERROR: AUTH_SECRET environment variable is required for security")
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET environment variable is required")
+  }
+}
+
+if (!process.env.CRON_SECRET || process.env.CRON_SECRET === "change-me-to-a-random-secret") {
+  console.warn("WARNING: CRON_SECRET is not set or using default value. Change it in production!")
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -13,14 +24,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID ?? "",
-      clientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
-      allowDangerousEmailAccountLinking: true,
-      token: "https://oauth2.googleapis.com/token",
-      userinfo: "https://openidconnect.googleapis.com/v1/userinfo",
-      issuer: "https://accounts.google.com",
-    }),
     Credentials({
       name: "credentials",
       credentials: {
@@ -54,9 +57,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id!
-        const dbUser = await prisma.user.findUnique({ where: { id: user.id! }, select: { isAdmin: true, merchantId: true } })
+      if (user?.id) {
+        token.id = user.id
+        const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { isAdmin: true, merchantId: true } })
         token.isAdmin = dbUser?.isAdmin ?? false
         token.merchantId = dbUser?.merchantId ?? null
       }

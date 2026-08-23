@@ -6,7 +6,8 @@ export function ThemeToggle({ iconOnly }: { iconOnly?: boolean }) {
   const [dark, setDark] = useState(false)
 
   useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"))
+    const isDark = document.documentElement.classList.contains("dark")
+    setTimeout(() => setDark(isDark), 0)
   }, [])
 
   function toggle() {
@@ -20,7 +21,7 @@ export function ThemeToggle({ iconOnly }: { iconOnly?: boolean }) {
     return (
       <button
         onClick={toggle}
-        className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+        className="p-2 rounded-full text-on-surface-variant hover:bg-muted transition-colors"
         aria-label="تبديل السمة"
       >
         {dark ? (
@@ -39,7 +40,7 @@ export function ThemeToggle({ iconOnly }: { iconOnly?: boolean }) {
   return (
     <button
       onClick={toggle}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-full text-sm text-on-surface-variant hover:bg-muted transition-colors w-full"
       aria-label="تبديل السمة"
     >
       {dark ? (

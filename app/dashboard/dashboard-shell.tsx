@@ -1,21 +1,24 @@
 "use client"
 
 import { useState } from "react"
+import dynamic from "next/dynamic"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { SemanticSearch } from "@/components/semantic-search"
 import { ThemeToggle } from "@/components/theme-toggle"
+
+const DexieDataWarning = dynamic(() => import("@/components/dexie-data-warning").then(m => ({ default: m.DexieDataWarning })), { ssr: false })
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <>
+    <div className="flex flex-1 min-w-0 max-w-full">
       <DashboardSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="flex-1 flex flex-col min-w-0 max-w-full">
-        <div className="glass-header px-2 sm:px-6 py-1.5 sm:py-3 flex items-center gap-1 sm:gap-3">
+        <div className="m3-top-app-bar px-2 sm:px-6 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-3">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="lg:hidden shrink-0 p-2 rounded-full text-on-surface-variant hover:bg-muted transition-colors"
             aria-label="فتح القائمة"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,8 +34,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <div className="px-2 sm:px-6 py-2 sm:py-6">
             {children}
           </div>
+          <DexieDataWarning />
         </div>
       </main>
-    </>
+    </div>
   )
 }

@@ -1,14 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
-import { updateCustomer } from "@/app/actions/customers"
+import { useSession } from "next-auth/react"
+import { getCustomersLocal, updateCustomerLocal } from "@/app/lib/dexie-service"
 import { PageHeader } from "@/components/ui/page-header"
 import { Label, Input, ErrorBanner, Button } from "@/components/ui/card"
 
 export default function EditCustomerPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  const { data: session } = useSession()
   const router = useRouter()
-  const [id, setId] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [name, setName] = useState("")
@@ -16,38 +18,53 @@ export default function EditCustomerPage({ params }: { params: Promise<{ id: str
   const [address, setAddress] = useState("")
   const [jobTitle, setJobTitle] = useState("")
   const [fetching, setFetching] = useState(true)
+  const [localId, setLocalId] = useState<number | null>(null)
 
   useEffect(() => {
-    params.then(({ id: pid }) => {
-      setId(pid)
-      fetch(`/api/customers?id=${pid}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.error) { setError(data.error); return }
-          setName(data.name)
-          setPhone(data.phone)
-          setAddress(data.address)
-          setJobTitle(data.jobTitle || "")
-        })
-        .catch(() => setError("فشل تحميل بيانات العميل"))
-        .finally(() => setFetching(false))
-    })
-  }, [params])
+    const uid = session?.user?.id
+    if (!uid) return
+
+    async function load() {
+      try {
+        const all = await getCustomersLocal(uid)
+        const found = all.find(c => c.serverId === id || String(c.id) === id)
+        if (found) {
+          setName(found.name)
+          setPhone(found.phone)
+          setAddress(found.address)
+          setJobTitle(found.jobTitle || "")
+          if (found.id) setLocalId(found.id)
+        } else {
+          setError("لم يتم العثور على العميل في التخزين المحلي")
+        }
+      } catch {
+        setError("فشل تحميل بيانات العميل")
+      } finally {
+        setFetching(false)
+      }
+    }
+
+    load()
+  }, [id, session?.user?.id])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!localId) { setError("لم يتم العثور على العميل"); return }
     setLoading(true)
     setError("")
 
-    const form = new FormData(e.currentTarget)
-    const result = await updateCustomer(id, form)
+    const result = await updateCustomerLocal(localId, {
+      name,
+      phone,
+      address,
+      jobTitle: jobTitle || undefined,
+    })
 
     if (result.error) {
       setError(result.error)
       setLoading(false)
     } else {
       router.push(`/dashboard/customers/${id}`)
-      router.refresh()
     }
   }
 

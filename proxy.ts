@@ -1,21 +1,14 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-const dashboardPattern = /^\/dashboard/
+export async function proxy(request: NextRequest) {
+  const sessionCookie = request.cookies.get("authjs.session-token")?.value
+    || request.cookies.get("__Secure-authjs.session-token")?.value
 
-export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  if (!dashboardPattern.test(pathname)) return NextResponse.next()
-
-  const sessionCookie =
-    request.cookies.get("authjs.session-token")?.value ||
-    request.cookies.get("next-auth.session-token")?.value ||
-    request.cookies.get("__Secure-authjs.session-token")?.value
-
+  // If no session token, redirect to /login
   if (!sessionCookie) {
     const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("callbackUrl", pathname)
+    loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname)
     return NextResponse.redirect(loginUrl)
   }
 
@@ -23,5 +16,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/dashboard/:path*",
+  matcher: ["/dashboard/:path*"],
 }
